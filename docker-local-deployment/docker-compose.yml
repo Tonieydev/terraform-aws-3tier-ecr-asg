@@ -1,0 +1,70 @@
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-goal-tracker-frontend:local}
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: goal-tracker-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - goal-tracker-network
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE:-goal-tracker-backend:local}
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: goal-tracker-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=goalsdb
+      - SSL=disable
+      - PORT=8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - goal-tracker-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: goal-tracker-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goalsdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d goalsdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - goal-tracker-network
+    restart: unless-stopped
+
+networks:
+  goal-tracker-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
