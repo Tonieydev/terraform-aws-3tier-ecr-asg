@@ -33,13 +33,7 @@ terraform init -input=false
 terraform validate
 success "Configuration valid"
 
-# Step 1: the registry must exist before images can be pushed,
-# and images must exist before the ASGs launch instances.
-status "Ensuring ECR repositories exist"
-terraform apply -target=module.ecr -input=false -auto-approve
-success "ECR repositories ready"
-
-# Step 2: build and push
+# Resolve the release tag first: every terraform command below needs it.
 if [ -n "${1:-}" ]; then
   TAG="$1"
 else
@@ -48,6 +42,16 @@ else
   fi
   TAG="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD)"
 fi
+[ "$TAG" = "latest" ] && fail "Refusing to deploy 'latest'. Use a versioned tag."
+status "Release tag: $TAG"
+
+# Step 1: the registry must exist before images can be pushed,
+# and images must exist before the ASGs launch instances.
+status "Ensuring ECR repositories exist"
+terraform apply -target=module.ecr -var="image_tag=$TAG" -input=false -auto-approve
+success "ECR repositories ready"
+
+# Step 2: build and push
 "$SCRIPT_DIR/build-and-push.sh" "$TAG"
 
 echo "image_tag = \"$TAG\"" > image_tag.auto.tfvars
