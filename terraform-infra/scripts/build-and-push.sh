@@ -39,8 +39,10 @@ FRONTEND_REPO="$(terraform -chdir="$TF_DIR" output -raw frontend_ecr_repository_
   || fail "frontend_ecr_repository_url output missing. Run: terraform apply -target=module.ecr"
 BACKEND_REPO="$(terraform -chdir="$TF_DIR" output -raw backend_ecr_repository_url 2>/dev/null)" \
   || fail "backend_ecr_repository_url output missing. Run: terraform apply -target=module.ecr"
-REGION="$(terraform -chdir="$TF_DIR" output -raw region 2>/dev/null)" || fail "region output missing"
 REGISTRY="${FRONTEND_REPO%%/*}"
+# Registry host is <account>.dkr.ecr.<region>.amazonaws.com, so the region is the 4th field
+REGION="$(echo "$REGISTRY" | cut -d. -f4)"
+[ -n "$REGION" ] || fail "Could not read region from $REGISTRY"
 
 status "Logging in to $REGISTRY"
 aws ecr get-login-password --region "$REGION" \
