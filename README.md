@@ -45,6 +45,21 @@ Each tier only accepts traffic from the tier directly above it. Rules reference 
 
 No security group allows SSH. Administrative access goes through SSM Session Manager.
 
+## Deployment evidence
+
+Captured from a full `terraform apply` in `us-east-1`. Terraform provisioned the network, load balancers, registry and database. AWS then blocked EC2 instance launches pending account verification, so both Auto Scaling Groups show zero instances. The application screenshots follow once the account clears verification.
+
+| | |
+|---|---|
+| ![ECR repositories](docs/screenshots/ecr-repositories.png) | ![Load balancers](docs/screenshots/load-balancers.png) |
+| Both ECR repositories with immutable tags and AES-256 encryption | External (internet-facing) and internal load balancers, both active |
+| ![Target groups](docs/screenshots/target-groups.png) | ![RDS PostgreSQL](docs/screenshots/rds.png) |
+| Frontend and backend target groups, ready to register instances (see the port note below) | PostgreSQL instance available in the private database subnets |
+| ![Auto Scaling Groups](docs/screenshots/auto-scaling-groups.png) | ![Terraform destroy](docs/screenshots/terraform-destroy.png) |
+| Both Auto Scaling Groups created; instance launch held by AWS account verification | Clean teardown: all 62 resources destroyed |
+
+**Port note.** The target groups screenshot shows the backend target group on port 80. That was a misconfiguration in this run: the backend container listens on **8080**, and the backend security group only accepts 8080 from the internal load balancer. On port 80 the internal load balancer would send traffic to a closed port and every backend health check would fail. The configuration now sets `target_group_port = 8080` on the internal load balancer, so the internal ALB listens on 80 and forwards to the backend on 8080. The frontend target group on 3000 was already correct.
+
 ## How a release works
 
 ```
@@ -79,11 +94,14 @@ The ECR repositories are created first because they must exist before images can
 .
 ├── backend/                      API source and Dockerfile
 ├── frontend/                     UI source and Dockerfile
+├── docs/
+│   ├── architecture.png
+│   └── screenshots/              Deployment evidence
 ├── docker-local-deployment/
 │   ├── docker-compose.yml        Full stack locally, with Postgres
 │   └── database/init.sql
 └── terraform-infra/
-    ├── environments/dev/         Root module: wires the modules together
+    ├── dev/                      Root module: wires the modules together
     │   ├── main.tf
     │   ├── variables.tf          Deployment settings only
     │   ├── locals.tf             Shared name prefix and tags
@@ -136,7 +154,7 @@ The script shows the Terraform plan and waits for you to type `yes`. When it fin
 Commit the pinned release afterwards:
 
 ```bash
-git add terraform-infra/environments/dev/image_tag.auto.tfvars
+git add terraform-infra/dev/image_tag.auto.tfvars
 git commit -m "Release $(git rev-parse --short HEAD)"
 ```
 
@@ -149,7 +167,7 @@ Change code, commit, and run `deploy.sh` again. The new tag changes both launch 
 To test the exact images running in AWS rather than a fresh build:
 
 ```bash
-cd terraform-infra/environments/dev
+cd terraform-infra/dev
 REGION=$(terraform output -raw region)
 BACKEND_REPO=$(terraform output -raw backend_ecr_repository_url)
 FRONTEND_REPO=$(terraform output -raw frontend_ecr_repository_url)
@@ -207,7 +225,7 @@ CPU, memory and disk usage are published per instance and per Auto Scaling Group
 ### Tear down
 
 ```bash
-cd terraform-infra/environments/dev
+cd terraform-infra/dev
 terraform destroy
 ```
 
@@ -215,7 +233,7 @@ This removes everything, including the ECR repositories and their images. Deleti
 
 ## Configuration
 
-All settings live in `environments/dev/variables.tf` with working defaults. Module-to-module values such as subnet IDs and security groups are wired from module outputs and are not configurable inputs.
+All settings live in `terraform-infra/dev/variables.tf` with working defaults. Module-to-module values such as subnet IDs and security groups are wired from module outputs and are not configurable inputs.
 
 | Variable | Default | Notes |
 |---|---|---|
