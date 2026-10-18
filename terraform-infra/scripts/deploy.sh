@@ -17,7 +17,7 @@ fail()    { echo -e "${RED}✗${NC} $1" >&2; exit 1; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TF_DIR="$PROJECT_ROOT/terraform-infra/environments/dev"
+TF_DIR="$PROJECT_ROOT/terraform-infra/dev"
 
 status "Checking prerequisites"
 for cmd in terraform aws docker git; do

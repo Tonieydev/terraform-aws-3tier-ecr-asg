@@ -13,7 +13,7 @@ module "vpc" {
 }
 
 module "security_groups" {
-  source = "../modules/security-groups"
+  source = "../modules/security_groups"
 
   environment = var.environment
   project     = var.project
@@ -116,7 +116,7 @@ module "backend_asg" {
 
   iam_instance_profile = module.iam.ec2_profile_name
   subnet_ids           = module.vpc.backend_private_subnet_ids
-  security_group_ids   = module.security-groups.backend_instances_sg_id
+  security_group_ids   = [module.security_groups.backend_instances_sg_id]
   target_group_arns    = [module.alb.target_group_arn]
 
   docker_image = "${module.ecr.backend_repository_url}:${var.image_tag}"
@@ -143,7 +143,7 @@ module "frontend_asg" {
   desired_size  = var.frontend_capacity.desired
   max_size      = var.frontend_capacity.max
 
-  iam_instance_profile = module.iam.ec2_instance_profile_name
+  iam_instance_profile = module.iam.ec2_profile_name
   subnet_ids           = module.vpc.frontend_private_subnet_ids
   security_group_ids   = [module.security_groups.frontend_instances_sg_id]
   target_group_arns    = [module.alb.target_group_arn]

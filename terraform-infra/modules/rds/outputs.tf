@@ -1,13 +1,9 @@
-output "endpoint" {
-  value = aws_db_instance.main.address
-}
-
 output "master_secret_arn" {
   value = aws_db_instance.main.master_user_secret[0].secret_arn
 }
 
 output "db_address" {
-  value = aws_db_instance.main.db_address
+  value = aws_db_instance.main.address
 }
 
 output "db_port" {

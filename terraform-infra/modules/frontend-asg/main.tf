@@ -35,16 +35,13 @@ resource "aws_launch_template" "frontend" {
 
   vpc_security_group_ids = var.security_group_ids
 
-  user_data = base64encode(templatefile("${path.module}/scripts/frontend_user_data.sh", {
-  docker_image  = var.docker_image
-  ecr_registry  = var.ecr_registry
-  db_secret_arn = var.db_secret_arn
-  db_host       = var.db_host
-  db_port       = var.db_port
-  db_name       = var.db_name
-  region        = var.region
-  environment   = var.environment
-  project       = var.project
+ user_data = base64encode(templatefile("${path.module}/scripts/frontend_user_data.sh", {
+  docker_image         = var.docker_image
+  ecr_registry         = var.ecr_registry
+  backend_internal_url = var.backend_internal_url
+  region               = var.region
+  environment          = var.environment
+  project              = var.project
 }))
 
    block_device_mappings {
