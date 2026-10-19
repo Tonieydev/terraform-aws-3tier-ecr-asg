@@ -51,11 +51,11 @@ Captured from a full `terraform apply` in `us-east-1`. Terraform provisioned the
 
 | | |
 |---|---|
-| ![ECR repositories](docs/screenshots/ecr-repositories.png) | ![Load balancers](docs/screenshots/load-balancers.png) |
+| ![ECR repositories](docs/screenshots/ecr.png) | ![Load balancers](docs/screenshots/load-balancers.png) |
 | Both ECR repositories with immutable tags and AES-256 encryption | External (internet-facing) and internal load balancers, both active |
 | ![Target groups](docs/screenshots/target-groups.png) | ![RDS PostgreSQL](docs/screenshots/rds.png) |
 | Frontend and backend target groups, ready to register instances (see the port note below) | PostgreSQL instance available in the private database subnets |
-| ![Auto Scaling Groups](docs/screenshots/auto-scaling-groups.png) | ![Terraform destroy](docs/screenshots/terraform-destroy.png) |
+| ![Auto Scaling Groups](docs/screenshots/asg.png) | ![Terraform destroy](docs/screenshots/terraform-destroy.png) |
 | Both Auto Scaling Groups created; instance launch held by AWS account verification | Clean teardown: all 62 resources destroyed |
 
 **Port note.** The target groups screenshot shows the backend target group on port 80. That was a misconfiguration in this run: the backend container listens on **8080**, and the backend security group only accepts 8080 from the internal load balancer. On port 80 the internal load balancer would send traffic to a closed port and every backend health check would fail. The configuration now sets `target_group_port = 8080` on the internal load balancer, so the internal ALB listens on 80 and forwards to the backend on 8080. The frontend target group on 3000 was already correct.
